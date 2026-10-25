@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MentraOS #4918 · Speaker state, made visible</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172725;background:#f3f6f4;font-synthesis:none;--accent:#15775d;--muted:#61716c;--line:#dbe4de}*{box-sizing:border-box}body{margin:0}main{max-width:1240px;margin:0 auto;padding:36px}h1{font-size:38px;letter-spacing:-1.5px;line-height:1.12;margin:12px 0}h2{font-size:24px;letter-spacing:-.6px;margin:0 0 8px}h3{font-size:17px;margin:0}p{line-height:1.55}a{color:var(--accent)}.eyebrow{font-size:12px;letter-spacing:1.3px;text-transform:uppercase;font-weight:750;color:var(--accent)}.lead{font-size:17px;max-width:850px;color:var(--muted);margin:12px 0 22px}.sketch{background:white;border:1px solid var(--line);border-radius:22px;padding:32px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}.head{padding:13px 18px;border-radius:10px;background:#eff2ef;font-weight:700}.head.after{background:#e8f4ed;color:#136849}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-bottom:1px solid var(--line);padding:19px 0}.comparison:last-of-type{border-bottom:0}.comparison article{padding:0 18px}.comparison p{font-size:15px;margin:7px 0 0;color:var(--muted)}.baseline{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.4px;text-transform:uppercase}.pill{display:inline-block;font:650 13px ui-monospace,monospace;border:1px solid var(--line);padding:7px 11px;border-radius:7px;margin:10px 5px 0 0;background:#f7f9f7}.good{background:#edf8f0;border-color:#c6dfcf;color:#166747}.flow{border:1px solid #c4ddcd;background:#f5faf6;border-radius:12px;padding:20px 22px;margin-top:16px;display:grid;grid-template-columns:1fr 35px 1.1fr 35px 1fr;align-items:center;gap:8px}.flow strong{display:block;font-size:16px}.flow small{display:block;margin-top:5px;font-size:12px;color:var(--muted);line-height:1.5}.arrow{text-align:center;font-size:24px;color:var(--accent)}.caption{font-size:12px;color:var(--muted);margin:18px 0 0}.demo{margin-top:36px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:18px 0}button{font:inherit;font-size:13px;cursor:pointer;border:1px solid #c8d5cd;background:white;color:#263c32;padding:10px 13px;border-radius:8px}button:hover{border-color:var(--accent)}button[aria-selected=true],button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.4;cursor:default}.scenario{background:#e8f2ec;border-radius:12px;padding:18px 22px}.scenario p{margin:6px 0 0;color:#476055;font-size:14px}.states{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}.card{border:1px solid var(--line);background:white;border-radius:14px;padding:22px;min-width:0}.card dt{color:var(--muted);font-size:12px}.card dd{font-size:15px;font-weight:600;margin:4px 0 14px;overflow-wrap:anywhere}.card dl{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin:18px 0 0}.note{border-top:1px solid var(--line);padding-top:13px;font-size:13px;line-height:1.5;min-height:58px;color:#476055}.stepper{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 24px}.stepper span{font-size:13px;color:var(--muted)}.free{border-top:1px solid var(--line);padding-top:20px}.free p{font-size:13px;color:var(--muted)}.actions{display:flex;flex-wrap:wrap;gap:8px}.log{font-size:13px;color:var(--muted);line-height:1.6}footer{margin-top:28px;color:var(--muted);font-size:12px;line-height:1.65}code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.92em}@media(max-width:750px){main{padding:16px}.sketch{padding:20px}h1{font-size:30px}.comparison,.columns,.states{gap:10px}.comparison article{padding:0 4px}.flow{grid-template-columns:1fr;padding:16px}.arrow{transform:rotate(90deg)}.card{padding:15px}.card dl{grid-template-columns:1fr}.head{padding:12px}.comparison h3{font-size:15px}}
+</style>
+</head>
+<body><main>
+<section class="sketch" id="pr-sketch" aria-label="Before and after visual summary">
+<div class="eyebrow">MentraOS · PR #4918 · Review sketch</div>
+<h1>The speaker state should match<br>the audio we asked to play.</h1>
+<p class="lead">Live streams report that they are playing. Older pending requests cannot take over newer audio. Interrupted speech gives its caller an answer.</p>
+<div class="columns"><div class="head">Before</div><div class="head after">With this PR · 9236cd9</div></div>
+<div class="comparison">
+<article><span class="baseline">Reported bug · Issue #3892</span><h3>A stream is open, but the SDK can say “silent”.</h3><span class="pill">isPlaying: false</span><p>Voice apps cannot reliably use this flag for echo or interruption guards.</p></article>
+<article><span class="baseline">Stream state follows stream identity</span><h3>The accepted stream keeps the SDK “playing”.</h3><span class="pill good">isPlaying: true</span><p>It settles on close, abort, stop, or a matching terminal event. Stale events are ignored.</p></article>
+</div>
+<div class="comparison">
+<article><span class="baseline">Earlier PR revision · 7506b32</span><h3>An old play request can interrupt a new stream.</h3><p>A play request waits for an abort. A new stream arrives. The old request can still resume later.</p></article>
+<article><span class="baseline">One shared check for pending requests</span><h3>The newer request keeps ownership.</h3><p>Play, speech, and stream-open use the same operation token. Older work rechecks after waiting.</p></article>
+</div>
+<div class="comparison">
+<article><span class="baseline">Earlier PR revision · 7506b32</span><h3>Replaced speech can leave its caller waiting.</h3><span class="pill">promise: pending</span><p>Another app wins while speech waits for abort. The old handler exits without a result.</p></article>
+<article><span class="baseline">Interrupted requests still get a result</span><h3>The caller learns that speech was interrupted.</h3><span class="pill good">completed: false</span><p>The speech run is cleared. Its result is sent once.</p></article>
+</div>
+<div style="margin-top:18px;border:1px solid #c4ddcd;border-radius:12px;background:#f5faf6;padding:18px">
+<h3 style="text-align:center">One ownership check across all pending audio requests</h3>
+<svg viewBox="0 0 1100 260" role="img" aria-label="Play, speak, and open stream each claim a token. After waiting, a current operation may continue; a superseded one settles and aborts any late stream." style="display:block;width:100%;margin-top:12px;font-family:inherit">
+<defs><marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#15775d"/></marker></defs>
+<g fill="#fff" stroke="#c4ddcd" stroke-width="1.5"><rect x="110" y="8" width="200" height="42" rx="9"/><rect x="450" y="8" width="200" height="42" rx="9"/><rect x="790" y="8" width="200" height="42" rx="9"/><rect x="345" y="102" width="410" height="62" rx="12"/><rect x="100" y="212" width="360" height="46" rx="9"/><rect x="650" y="212" width="350" height="46" rx="9"/></g>
+<g fill="none" stroke="#15775d" stroke-width="1.7" marker-end="url(#tip)"><path d="M210 50 V76 H490 V101"/><path d="M550 50 V101"/><path d="M890 50 V76 H610 V101"/><path d="M425 164 V187 H280 V210"/><path d="M675 164 V187 H825 V210"/></g>
+<g fill="#172725" text-anchor="middle" font-size="16" font-weight="650"><text x="210" y="35">Play</text><text x="550" y="35">Speak</text><text x="890" y="35">Open stream</text><text x="550" y="127">After waiting: still the current operation?</text><text x="280" y="241">Settle old request; abort late stream</text><text x="825" y="241">Continue with current playback</text></g>
+<g fill="#61716c" text-anchor="middle" font-size="12"><text x="550" y="149">New request, Stop, teardown, or restart can invalidate it.</text><text x="360" y="181">No</text><text x="748" y="181">Yes</text></g>
+</svg></div>
+<p class="caption">Behavior sketch, not a device recording. “Playing” means an accepted live stream or optimistic playback state, not measured speaker output. Existing CI and device-test limitations remain in the PR.</p>
+</section>
+<section class="demo" aria-label="Interactive speaker model">
+<div class="eyebrow">Matt Pocock · Logic prototype</div><h2>Click through the tricky timing.</h2>
+<p class="lead">Question: when a request is still waiting for audio cleanup, which request may continue, and does every interrupted caller receive a result?</p>
+<div class="tabs" role="tablist" aria-label="Audio scenarios" id="tabs"></div>
+<div class="scenario"><h3 id="scenario-title"></h3><p id="scenario-description"></p><p id="baseline"></p></div>
+<div class="states" aria-live="polite"><article class="card"><h3>Before</h3><dl id="before-state"></dl><div class="note" id="before-note"></div></article><article class="card"><h3>With this PR</h3><dl id="after-state"></dl><div class="note" id="after-note"></div></article></div>
+<div class="stepper"><button class="primary" id="next-step"></button><button id="restart">Restart this walkthrough</button><span id="step-count"></span></div>
+<div class="free"><h3>Try your own order</h3><p>These buttons drive an illustrative model. “Release delayed work” represents a controlled async completion, not elapsed time.</p><div class="actions" id="actions"></div><p class="log" id="action-log"></p></div>
+</section>
+<footer><strong>PROTOTYPE · illustrative only · no audio is played.</strong> One HTML file. Open it locally, no setup or network needed. State stays in this page.<br>The first walkthrough illustrates the reported original bug; the other walkthroughs compare the earlier PR at <code>7506b32</code> with implementation <code>9236cd9</code>. This model explains selected event orders with one delayed request at a time; it is not the production runtime or evidence of on-device correctness.<br>Sources: <code>LocalMiniappRuntime.ts</code>, <code>speaker.ts</code>, <code>LocalMiniappRuntime.speaker-stream-state.test.ts</code>, and <code>speakerStreamState.test.ts</code> at that implementation commit. The screenshot captures only the static review sketch above.</footer>
+</main>
+<script>
+// Portable, in-memory model of the selected traces. No DOM inside these functions.
+function initialState(){return {stream:null,audio:"None",sdk:"stopped",owner:"None",pending:null,nextStream:false,speechReply:"No request",streamReply:"No request",stoppedDuringOpen:false,note:"Ready. Choose a walkthrough or press any action."}}
+function transition(previous,action,fixed,originalBug){
+ const s=structuredClone(previous);
+ if(action==="open"){
+  s.owner=fixed?"New stream":s.owner;
+  if(s.pending && s.pending.kind!=="open"){
+   s.nextStream=true;
+   if(fixed && s.pending.kind==="speech")s.speechReply="Interrupted · completed: false";
+   s.note="A replacement stream is requested while old audio cleanup is pending. Release delayed work next.";
+  }else{
+   s.stream="Live stream";s.audio="Live stream";s.sdk=(!fixed&&originalBug)?"stopped":"playing";s.owner="None (accepted)";s.streamReply="Accepted";
+   s.note=(!fixed&&originalBug)?"Reported failure: the stream is open, but isPlaying reads false.":"The accepted live stream holds the SDK in playing state.";
+  }
+ }else if(action==="play"||action==="speech"){
+  s.owner=action==="play"?"URL playback":"Speech";
+  if(action==="speech")s.speechReply="Waiting for completion";
+  if(s.stream){s.pending={kind:action};s.note="The request waits for the live stream to abort. Cleanup is held open in this demo.";}
+  else{s.audio=s.owner;s.sdk="playing";s.owner="None (accepted)";s.note="Playback is accepted; state is optimistic, not measured sound.";}
+ }else if(action==="other"){
+  s.owner="Other app";s.audio="Other app playback";s.note="Another app now owns the pending playback operation. Release the old cleanup to see whether its caller settles.";
+ }else if(action==="stop"){
+  s.owner="Stopped";s.stream=null;s.audio="None";s.sdk="stopped";
+  if(s.pending?.kind==="speech")s.speechReply="Interrupted · completed: false";
+  if(s.pending?.kind==="open")s.stoppedDuringOpen=true;
+  s.note="Stop was requested. Any native open already in progress may still return later.";
+ }else if(action==="beginOpen"){
+  s.pending={kind:"open"};s.owner=fixed?"Opening stream":s.owner;s.streamReply="Waiting for native open";s.stoppedDuringOpen=false;s.note="Native stream open is in progress. Press Stop before releasing delayed work.";
+ }else if(action==="release"){
+  const pending=s.pending;
+  if(!pending){s.note="No delayed request is waiting.";return s;}
+  if(pending.kind==="open"){
+   if(fixed && s.stoppedDuringOpen){s.audio="None";s.stream=null;s.sdk="stopped";s.streamReply="Rejected · superseded";s.note="The late native stream is aborted; no live writer is returned.";}
+   else{s.audio="Live stream";s.stream="Live stream";s.sdk="playing";s.streamReply="Accepted";s.note="The late native open is accepted, even though Stop was requested.";}
+  }else if(s.nextStream){
+   s.stream="Replacement stream";s.audio="Replacement stream";s.sdk="playing";s.streamReply="Accepted";
+   if(!fixed){s.stream=null;s.audio=pending.kind==="play"?"Older URL playback":"Older speech";s.sdk="stopped";s.note="One allowed old ordering: delayed playback starts and aborts the new stream. Its tagged stop can also leave the SDK stopped.";}
+   else{s.note="The replacement stream wins. Older delayed work cannot start. Its caller is settled.";if(pending.kind==="speech")s.speechReply="Interrupted · completed: false";}
+  }else if(s.owner==="Other app"||s.owner==="Stopped"){
+   s.stream=null;s.sdk="stopped";
+   if(pending.kind==="speech"){
+    if(fixed){s.speechReply="Interrupted · completed: false";s.note="Old speech returns an interrupted result and clears its run.";}
+    else{s.speechReply="Still waiting · no result";s.note="Old speech exits on the ownership check, but its caller remains pending.";}
+   }else{s.note="The older URL request is discarded and its caller is settled.";}
+  }else{
+   s.stream=null;s.audio=pending.kind==="play"?"URL playback":"Speech";s.sdk="playing";s.note="Stream cleanup completes before replacement loading/playing events.";
+  }
+  s.pending=null;s.nextStream=false;s.owner="None (settled)";
+ }else if(action==="end"){
+  if(s.stream){s.stream=null;s.audio="None";s.sdk="stopped";s.note="A matching stream terminal event settles that stream.";}
+  else{s.note="There is no accepted live stream to end.";}
+ }else if(action==="stale"){
+  if(fixed&&s.stream)s.note="An unscoped stop from unrelated playback is ignored while a live stream is tracked.";
+  else{s.sdk="stopped";s.note="An unscoped stopped event is applied. The fixed SDK protects a tracked live stream from it.";}
+ }
+ return s;
+}
+const scenarios=[
+ {title:"1 · State matches the stream",description:"Open a stream, then deliver an unrelated stopped event. Watch the SDK flag while the stream remains open.",baseline:"Before: reported issue #3892. This is a representative failure trace, not a claim that every original stream stayed false.",original:true,steps:["open","stale","end"]},
+ {title:"2 · Another app replaces speech",description:"Speech waits for an old stream to abort. Another app starts playback first. Watch whether the original speech caller receives a result.",baseline:"Before: earlier PR revision 7506b32. After: implementation 9236cd9.",steps:["open","speech","other","release"]},
+ {title:"3 · A newer stream wins",description:"An old play request waits on stream cleanup. A replacement stream is requested. Release delayed work to explore a stale-play ordering.",baseline:"Before: earlier PR revision 7506b32. After: implementation 9236cd9.",steps:["open","play","open","release"]},
+ {title:"4 · Stop during native open",description:"A stream is still opening when Stop arrives. Now let the native open finish. A stopped app should not acquire a late live stream.",baseline:"Before: earlier PR revision 7506b32. After: implementation 9236cd9.",steps:["beginOpen","stop","release"]}
+];
+const labels={open:"Request a live stream",play:"Request URL playback",speech:"Request speech",other:"Other app starts playback",stop:"Stop this app",beginOpen:"Begin a delayed native open",release:"Release delayed work",end:"End the live stream",stale:"Deliver an unrelated stopped event"};
+let scenarioIndex=0,step=0,before=initialState(),after=initialState(),history=[];
+function dispatch(action){before=transition(before,action,false,!!scenarios[scenarioIndex].original);after=transition(after,action,true,false);history.push(labels[action]);render();}
+function reset(){step=0;history=[];before=initialState();after=initialState();render();}
+function stateFields(s){return [["Audio request active",s.audio],["This app’s live stream",s.stream||"None"],["SDK state / isPlaying",s.sdk+" / "+(s.sdk==="playing")],["Pending-operation owner",s.owner],["Delayed request",s.pending?.kind||"None"],["Replacement stream queued",s.nextStream?"Yes":"No"],["Speech result",s.speechReply],["Stream-open result",s.streamReply]];}
+function render(){
+ const scenario=scenarios[scenarioIndex];
+ document.querySelectorAll('[role=tab]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===scenarioIndex)));
+ document.getElementById('scenario-title').textContent=scenario.title;
+ document.getElementById('scenario-description').textContent=scenario.description;
+ document.getElementById('baseline').textContent=scenario.baseline;
+ for(const [name,state] of [["before",before],["after",after]]){
+  const dl=document.getElementById(name+'-state');dl.replaceChildren();
+  for(const [label,value] of stateFields(state)){const field=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;field.append(dt,dd);dl.append(field);}
+  document.getElementById(name+'-note').textContent=state.note;
+ }
+ const next=document.getElementById('next-step');next.disabled=step>=scenario.steps.length;next.textContent=next.disabled?"Walkthrough complete":labels[scenario.steps[step]];
+ document.getElementById('step-count').textContent=step+' / '+scenario.steps.length+' guided steps';
+ document.getElementById('action-log').textContent=history.length?'Actions: '+history.map((x,i)=>(i+1)+'. '+x).join(' · '):'No actions yet.';
+}
+scenarios.forEach((s,i)=>{const b=document.createElement('button');b.role='tab';b.textContent=s.title;b.onclick=()=>{scenarioIndex=i;reset();};document.getElementById('tabs').append(b);});
+Object.entries(labels).forEach(([action,label])=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>dispatch(action);document.getElementById('actions').append(b);});
+document.getElementById('next-step').onclick=()=>{const action=scenarios[scenarioIndex].steps[step++];dispatch(action);};
+document.getElementById('restart').onclick=reset;
+render();
+</script>
+</body></html>
